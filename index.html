@@ -56,7 +56,7 @@ header p{margin:4px 0 0;color:var(--muted);font-size:.95rem}
 #view{width:100%;height:100%;object-fit:contain;display:block}
 #hold{position:absolute;right:10px;bottom:10px;line-height:1.3;font:inherit;font-size:.85rem;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(10,14,16,.62);color:#f2f6f8;backdrop-filter:blur(4px);touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
 #hold.on{background:#f2f6f8;color:#0b1013}
-#vctl{position:absolute;left:10px;bottom:10px;line-height:1.3;font:inherit;font-size:.85rem;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(10,14,16,.62);color:#f2f6f8;cursor:pointer}
+#vctl{position:absolute;left:10px;bottom:10px;width:38px;height:38px;display:grid;place-items:center;padding:0;line-height:0;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(10,14,16,.62);color:#f2f6f8;cursor:pointer}
 #vctl:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #fps{position:absolute;left:10px;top:10px;line-height:1.3;font-family:var(--f-mono);font-size:.75rem;padding:3px 8px;border-radius:4px;background:rgba(10,14,16,.62);color:#f2f6f8}
 .scenes{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;min-width:0}
@@ -95,6 +95,7 @@ header p{margin:4px 0 0;color:var(--muted);font-size:.95rem}
 .ctl{display:flex;flex-direction:column;gap:4px}
 .ctl-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .ctl label{font-weight:700;font-size:.95rem}
+.ctl label .sub{font-size:.78rem;font-weight:400;color:var(--muted);margin-left:2px}
 .ctl output{font-family:var(--f-mono);font-variant-numeric:tabular-nums;color:var(--accent)}
 .ctl small{color:var(--muted);font-size:.78rem}
 input[type=range]{width:100%;accent-color:var(--accent);margin:0;padding-block:10px;touch-action:none}
@@ -127,8 +128,8 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0;padding-block:1
       </header>
       <div class="frame">
         <canvas id="view" width="1200" height="800" aria-label="見え方のシミュレーション結果"></canvas>
-        <button id="hold" type="button">押している間は元の画像</button>
-        <button id="vctl" type="button" hidden>一時停止</button>
+        <button id="hold" type="button" aria-label="押している間は元の映像を表示">original</button>
+        <button id="vctl" type="button" hidden aria-label="一時停止"></button>
         <span id="fps" hidden></span>
       </div>
     </section>
@@ -155,7 +156,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0;padding-block:1
         <div class="tip" id="tip" hidden><div class="tip-top"><span id="tipName"></span><b id="tipVal"></b></div><p id="tipText"></p><p class="tip-dir" id="tipDir"></p></div>
       </div>
       <div class="ctl" id="ctlP">
-        <div class="ctl-top"><label for="p">周りの明るさ（瞳孔の大きさ）</label><output id="oP" for="p">6.5 mm</output></div>
+        <div class="ctl-top"><label for="p">露出<span class="sub">（瞳孔の大きさ）</span></label><output id="oP" for="p">6.5 mm</output></div>
         <input id="p" type="range" min="2" max="8" step="0.5" value="6.5">
         <div class="tip" id="tipP" hidden><div class="tip-top"><span id="tipPScene"></span><b id="tipPVal"></b></div><p>暗いほど瞳孔が開き、同じ度数でもぼけが大きくなります。明かりのにじみも強くなります。</p></div>
       </div>
@@ -267,22 +268,23 @@ function upload(){stopMedia();setSize(src.width,src.height);gl.texImage2D(gl.TEX
 let fc=0,ft=0;
 let lastDraw=0;const FRAME=1000/24;
 function ensureTick(){if(!ticking){ticking=true;requestAnimationFrame(tick)}}
-function mediaUi(){$('vctl').hidden=false;$('fps').hidden=false;$('fps').textContent='— fps';$('vctl').textContent='一時停止';fc=0;ft=performance.now()}
+function setPlay(paused){const b=$('vctl');b.innerHTML=paused?'<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z" fill="#fff"/></svg>':'<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1" fill="#fff"/><rect x="14" y="4.5" width="4" height="15" rx="1" fill="#fff"/></svg>';b.setAttribute('aria-label',paused?'再生':'一時停止')}
+function mediaUi(){$('vctl').hidden=false;setPlay(false);fc=0;ft=performance.now()}
 function tick(){if(!vid&&!anim){ticking=false;return}const t=performance.now();if(t-lastDraw<FRAME-2){requestAnimationFrame(tick);return}
   if(anim&&!animPaused){animT+=Math.min(.1,(t-lastDraw)/1000);(anim==='day'?drawDay:drawNight)(animT);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,src)}
-  lastDraw=t;render();fc++;if(t-ft>=1000){$('fps').textContent=Math.round(fc*1000/(t-ft))+' fps';fc=0;ft=t}requestAnimationFrame(tick)}
+  lastDraw=t;render();requestAnimationFrame(tick)}
 function startAnim(n){stopMedia();anim=n;animT=0;animPaused=false;(n==='day'?drawDay:drawNight)(0);setSize(src.width,src.height);
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,src);lastDraw=performance.now();mediaUi();ensureTick()}
 function playVideo(url,scene,onFail){const v=document.createElement('video');v.muted=true;v.loop=true;v.playsInline=true;v.setAttribute('playsinline','');
   v.addEventListener('loadedmetadata',()=>{const m=960,s=Math.min(1,m/Math.max(v.videoWidth,v.videoHeight));setSize(Math.round(v.videoWidth*s),Math.round(v.videoHeight*s));
     vid=v;setScene(scene);mediaUi();
-    v.play().catch(()=>{$('vctl').textContent='再生'});ensureTick()},{once:true});
+    v.play().catch(()=>{setPlay(true)});ensureTick()},{once:true});
   v.addEventListener('error',()=>{if(onFail){onFail();return}$('fps').hidden=false;$('fps').textContent='この動画は読み込めませんでした'},{once:true});
   v.src=url}
 function loadVideo(f){stopMedia();vidUrl=URL.createObjectURL(f);playVideo(vidUrl,'file')}
 const CLIPS={day:'assets/day.mp4',twilight:'assets/twilight.mp4',night:'assets/night.mp4'};
 function startClip(n){stopMedia();playVideo(CLIPS[n],n,()=>startAnim(n==='day'?'day':'night'))}
-$('vctl').addEventListener('click',()=>{if(anim){animPaused=!animPaused;$('vctl').textContent=animPaused?'再生':'一時停止';return}if(!vid)return;if(vid.paused){vid.play();$('vctl').textContent='一時停止'}else{vid.pause();$('vctl').textContent='再生'}});
+$('vctl').addEventListener('click',()=>{if(anim){animPaused=!animPaused;setPlay(animPaused);return}if(!vid)return;if(vid.paused){vid.play();setPlay(false)}else{vid.pause();setPlay(true)}});
 
 // 光学：ぼけ角(rad) ≈ 瞳孔径(m) × 度数(D)。軸方向の経線は S、直交する経線は S+C
 function blur(){const k=st.P*1e-3*180/Math.PI;return{a:k*Math.abs(st.S),b:k*Math.abs(st.S+st.C)}}// 直径（度）
