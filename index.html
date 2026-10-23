@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ミセル・ド・ミエテル</title>
+<meta name="description" content="眼鏡の処方値（S・C・AX）と周りの明るさから、裸眼での見え方を映像で再現するジョークアプリ。">
+<meta name="theme-color" content="#e9eef0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1416" media="(prefers-color-scheme: dark)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Shippori+Mincho+B1:wght@700&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<style>
+:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);-webkit-text-size-adjust:100%}
+body{margin:0;font-size:14px}
+img{max-width:100%}
+[hidden]{display:none!important}
+</style>
+<style>
+/* Layout: 写真ビューアが主役、右（スマホでは下）に眼鏡処方箋のような操作パネル */
+:root{
+  --bg:#e9eef0; --panel:#ffffff; --ink:#1a2327; --muted:#5a6a72; --line:#cad4d8;
+  --accent:#2c6d8c; --accent-soft:#d9e9f1; --stage:#0f1417;
+  --f-display:"Pinyon Script","Snell Roundhand","Apple Chancery",cursive;
+  --f-body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1416; --panel:#172024; --ink:#e2e9ec; --muted:#93a3ab; --line:#2a373d;
+  --accent:#6db2d3; --accent-soft:#1d3440; --stage:#06090b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1416; --panel:#172024; --ink:#e2e9ec; --muted:#93a3ab; --line:#2a373d;
+  --accent:#6db2d3; --accent-soft:#1d3440; --stage:#06090b; color-scheme:dark}
+
+html{box-sizing:border-box}
+html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);line-height:1.6;touch-action:none}
+.wrap{box-sizing:border-box;height:100%;max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:8px 10px;display:flex;flex-direction:column;gap:8px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+#theme{flex:none;width:40px;height:40px;display:grid;place-items:center;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;margin-top:4px}
+#theme:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#theme .i-sun{display:none}
+#theme.is-dark .i-sun{display:block}#theme.is-dark .i-moon{display:none}
+header h1{margin:0;display:flex;flex-wrap:wrap;align-items:flex-end;gap:4px 14px;font-weight:400}
+.logo-wrap{position:relative;display:block;width:clamp(190px,52vw,380px);line-height:0}
+.logo{width:100%;height:auto;display:block}
+#stars{position:absolute;left:39.48%;top:68.74%;width:20.11%;height:44.13%;pointer-events:none}
+header .fr{font-family:var(--f-display);font-size:clamp(2.1rem,7vw,3.4rem);line-height:1.1;letter-spacing:.01em}
+header .kana{font-family:var(--f-body);font-size:.85rem;color:var(--muted);letter-spacing:.12em}
+header p{margin:4px 0 0;color:var(--muted);font-size:.95rem}
+.grid{display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
+@media (min-width:880px){.grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(300px,1fr);align-items:stretch;gap:18px}}
+.stage{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1;min-height:0}
+.frame{position:relative;background:var(--stage);border-radius:6px;overflow:hidden;line-height:0;flex:1;min-height:140px}
+#view{width:100%;height:100%;object-fit:contain;display:block}
+#hold{position:absolute;right:10px;bottom:10px;line-height:1.3;font:inherit;font-size:.85rem;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(10,14,16,.62);color:#f2f6f8;backdrop-filter:blur(4px);touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
+#hold.on{background:#f2f6f8;color:#0b1013}
+#vctl{position:absolute;left:10px;bottom:10px;line-height:1.3;font:inherit;font-size:.85rem;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(10,14,16,.62);color:#f2f6f8;cursor:pointer}
+#vctl:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#fps{position:absolute;left:10px;top:10px;line-height:1.3;font-family:var(--f-mono);font-size:.75rem;padding:3px 8px;border-radius:4px;background:rgba(10,14,16,.62);color:#f2f6f8}
+.scenes{display:flex;flex-wrap:nowrap;align-items:center;gap:6px;min-width:0}
+.scenes-label{flex:none;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.scenes .chip{flex:none;font-size:.8rem;padding:5px 9px;white-space:nowrap}
+.scenes #fileLabel{flex:0 1 auto;min-width:0;margin-left:auto;overflow:hidden;text-overflow:ellipsis}
+.chip{font:inherit;font-size:.9rem;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--panel)}
+.chip:focus-visible,#hold:focus-visible,input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#file{position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:14px;min-width:0;flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+@media (min-width:880px){.panel{padding:18px;gap:18px}}
+.rx{border:1px solid var(--ink);border-radius:3px;position:relative}
+.rx-head{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;letter-spacing:.12em;color:var(--muted);padding:6px 10px;border-bottom:1px solid var(--ink)}
+.rx table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.rx th{font-weight:400;font-size:.72rem;color:var(--muted);padding:6px 4px 0;letter-spacing:.06em}
+.rx td{text-align:center;padding:0;width:33.3%}
+.dial{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 2px 12px;touch-action:none;cursor:ns-resize;outline:none}
+.dial .val{font-family:var(--f-mono);font-size:1.35rem;line-height:1.3}
+.dial .grip{display:grid;place-items:center;width:48px;height:32px;border-radius:999px;background:var(--accent-soft);color:var(--accent);transition:transform .12s}
+.dial.active{background:var(--accent-soft)}
+.dial.active .grip{background:var(--accent);color:var(--panel);transform:scale(1.08)}
+.dial:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+.tip{position:absolute;left:-1px;right:70px;z-index:20;background:var(--ink);color:var(--bg);border-radius:8px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.28);pointer-events:none}
+.tip::after{content:"";position:absolute;bottom:-6px;left:var(--x,50%);width:12px;height:12px;background:var(--ink);transform:translateX(-50%) rotate(45deg)}
+.tip-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-weight:700}
+.tip-top b{font-family:var(--f-mono);font-size:1.15rem}
+#ctlP{position:relative}
+#tipP{left:-1px;right:-1px}
+#tipPScene{font-size:1.05rem}
+.tip p{margin:2px 0 0;font-size:.82rem;opacity:.85}
+.tip .tip-dir{opacity:.65;font-size:.75rem}
+@media (prefers-reduced-motion:reduce){.dial .grip{transition:none}}
+.rx th+th,.rx td+td{border-left:1px solid var(--line)}
+.ctl{display:flex;flex-direction:column;gap:4px}
+.ctl-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ctl label{font-weight:700;font-size:.95rem}
+.ctl output{font-family:var(--f-mono);font-variant-numeric:tabular-nums;color:var(--accent)}
+.ctl small{color:var(--muted);font-size:.78rem}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0;padding-block:10px;touch-action:none}
+.presets{display:flex;gap:6px;flex-wrap:wrap}
+.presets .chip{font-size:.8rem;padding:4px 11px}
+.psf{display:flex;gap:14px;align-items:center;border-top:1px solid var(--line);padding-top:16px}
+#psf{width:52px;height:52px;flex:none;border-radius:4px;background:var(--stage)}
+.psf p{margin:0;font-size:.85rem;color:var(--muted)}
+.psf strong{display:block;color:var(--ink);font-size:.95rem;margin-bottom:2px}
+.psf .num{font-family:var(--f-mono);color:var(--ink)}
+.note{font-size:.8rem;color:var(--muted);max-width:68ch;flex:none;position:relative}
+.note-body{position:absolute;left:0;bottom:calc(100% + 6px);width:min(100%,68ch);box-sizing:border-box;background:var(--panel);color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:10px 14px;box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:30}
+.note summary{cursor:pointer;width:max-content;padding:4px 0}
+.note summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.note p{margin:4px 0 0}
+.wrap{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <main class="grid">
+    <section class="stage">
+      <header>
+        <h1><span class="logo-wrap"><img class="logo" src="assets/logo.png" alt="Misel de Mieter" width="900" height="213"><canvas id="stars" width="181" height="94" aria-hidden="true"></canvas></span><span class="kana">ミセル・ド・ミエテル</span></h1>
+        <button id="theme" type="button" aria-label="ダークモードに切り替える">
+          <svg class="i-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="currentColor"/></svg>
+          <svg class="i-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></g></svg>
+        </button>
+      </header>
+      <div class="frame">
+        <canvas id="view" width="1200" height="800" aria-label="見え方のシミュレーション結果"></canvas>
+        <button id="hold" type="button">押している間は元の画像</button>
+        <button id="vctl" type="button" hidden>一時停止</button>
+        <span id="fps" hidden></span>
+      </div>
+    </section>
+
+    <section class="panel" aria-label="見え方の設定">
+      <div class="scenes" role="group" aria-label="写真">
+        <span class="scenes-label">Sample</span>
+        <button class="chip" type="button" data-scene="day" aria-pressed="false">Day</button>
+        <button class="chip" type="button" data-scene="twilight" aria-pressed="true">Twilight</button>
+        <button class="chip" type="button" data-scene="night" aria-pressed="false">Night</button>
+        <label class="chip" for="file" id="fileLabel">Load file</label>
+        <input id="file" type="file" accept="image/*,video/*">
+      </div>
+      <div class="rx">
+        <div class="rx-head"><span>裸眼の度数（処方値）</span><canvas id="psf" width="160" height="160" aria-label="光の1点の広がり方"></canvas></div>
+        <table>
+          <thead><tr><th>球面 S</th><th>円柱 C</th><th>軸 AX</th></tr></thead>
+          <tbody><tr>
+            <td><div class="dial" data-k="S" tabindex="0" role="spinbutton" aria-label="球面 S（近視の強さ）" aria-valuemin="-10" aria-valuemax="0"><span class="val" id="rxS">−3.00</span><span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2.5l5.5 6h-11zM12 21.5l-5.5-6h11z" fill="currentColor"/></svg></span></div></td>
+            <td><div class="dial" data-k="C" tabindex="0" role="spinbutton" aria-label="円柱 C（乱視の強さ）" aria-valuemin="-6" aria-valuemax="0"><span class="val" id="rxC">−1.50</span><span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2.5l5.5 6h-11zM12 21.5l-5.5-6h11z" fill="currentColor"/></svg></span></div></td>
+            <td><div class="dial" data-k="AX" tabindex="0" role="spinbutton" aria-label="軸 AX（乱視の軸）" aria-valuemin="5" aria-valuemax="180"><span class="val" id="rxA">180</span><span class="grip" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 2.5l5.5 6h-11zM12 21.5l-5.5-6h11z" fill="currentColor"/></svg></span></div></td>
+          </tr></tbody>
+        </table>
+        <div class="tip" id="tip" hidden><div class="tip-top"><span id="tipName"></span><b id="tipVal"></b></div><p id="tipText"></p><p class="tip-dir" id="tipDir"></p></div>
+      </div>
+      <div class="ctl" id="ctlP">
+        <div class="ctl-top"><label for="p">周りの明るさ（瞳孔の大きさ）</label><output id="oP" for="p">6.5 mm</output></div>
+        <input id="p" type="range" min="2" max="8" step="0.5" value="6.5">
+        <div class="tip" id="tipP" hidden><div class="tip-top"><span id="tipPScene"></span><b id="tipPVal"></b></div><p>暗いほど瞳孔が開き、同じ度数でもぼけが大きくなります。明かりのにじみも強くなります。</p></div>
+      </div>
+    </section>
+  </main>
+
+  <details class="note"><summary>計算の前提</summary><div class="note-body"><p>遠くの景色を見ているものとして計算しています。ぼけの大きさは「瞳孔径 × 度数」で近似しています。目の慣れや脳の補正は含まないので、本人の実感とは差が出ることがあります。</p><p>見え方を楽しむためのエンタメアプリで、医療用の診断ツールではありません。目のことは眼科で相談してください。</p></div></details>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const view=$('view'), psf=$('psf');
+const src=document.createElement('canvas');
+const st={S:-3,C:-1.5,AX:180,P:6.5,hold:false};
+const FOV=60;
+
+function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const JP="'Hiragino Sans','Noto Sans JP','Yu Gothic',sans-serif";
+
+function sizeSrc(w,h){if(src.width!==w)src.width=w;if(src.height!==h)src.height=h}
+const wrapX=(off,v,t,W)=>{const span=W+420;return((off+v*t)%span+span)%span-210};
+function carBody(x,cx,cy,w,h,col,glass){x.fillStyle=col;x.fillRect(cx,cy+h*.38,w,h*.42);x.fillRect(cx+w*.2,cy+h*.05,w*.56,h*.38);
+  x.fillStyle=glass;x.fillRect(cx+w*.25,cy+h*.12,w*.22,h*.26);x.fillRect(cx+w*.51,cy+h*.12,w*.2,h*.26);
+  x.fillStyle='#121315';[.22,.78].forEach(k=>{x.beginPath();x.arc(cx+w*k,cy+h*.82,h*.16,0,7);x.fill()})}
+
+function drawDay(t=0){
+  const W=1200,H=800;sizeSrc(W,H);const x=src.getContext('2d');const r=rng(7);const gy=H*0.62;x.textAlign='left';
+  let g=x.createLinearGradient(0,0,0,gy);g.addColorStop(0,'#86b2d8');g.addColorStop(1,'#dbe7ef');x.fillStyle=g;x.fillRect(0,0,W,H);
+  x.fillStyle='rgba(255,255,255,.88)';[[0,70,1],[520,40,.7],[900,120,1.15]].forEach(([o,cy,k])=>{const cx=wrapX(o,10*k,t,W);x.beginPath();x.ellipse(cx,cy,70*k,22*k,0,0,7);x.fill();x.beginPath();x.ellipse(cx+46*k,cy-12*k,48*k,20*k,0,0,7);x.fill()});
+  let bx=0;const cols=['#c9c3b8','#b7bec4','#d8d2c4','#a9b2b8','#c2b9ab'];
+  while(bx<W){const w=110+r()*150,h=200+r()*280,top=gy-h;x.fillStyle=cols[Math.floor(r()*cols.length)];x.fillRect(bx,top,w,h);
+    x.fillStyle='#6d8494';for(let yy=top+18;yy<gy-30;yy+=34)for(let xx=bx+14;xx<bx+w-22;xx+=28)x.fillRect(xx,yy,15,20);bx+=w+5}
+  x.fillStyle='#5a5e62';x.fillRect(0,gy,W,H-gy);x.fillStyle='#a8a299';x.fillRect(0,gy,W,46);
+  x.fillStyle='#f2f2ee';for(let i=0;i<7;i++){const y=gy+80+i*18+i*i*5,h=8+i*3,s=i*34;x.fillRect(W*0.28-s,y,W*0.44+2*s,h)}
+  // 車（奥は右へ、手前は左へ）
+  [[0,'#c7372f'],[520,'#e9ecef'],[960,'#2c5a8a']].forEach(([o,c])=>carBody(x,wrapX(o,150,t,W),gy+44,150,62,c,'#a9c4d4'));
+  [[200,'#f0c419'],[860,'#3a3f45']].forEach(([o,c])=>carBody(x,W-wrapX(o,230,t,W)-210,gy+150,210,86,c,'#a9c4d4'));
+  x.fillStyle='#3c4246';x.fillRect(0,gy-64,W,5);for(let fx=8;fx<W;fx+=22)x.fillRect(fx,gy-64,4,64);
+  // 駅名標
+  x.fillStyle='#2f3337';x.fillRect(150,240,10,gy-240);x.fillRect(470,240,10,gy-240);
+  x.fillStyle='#ffffff';x.fillRect(90,80,450,170);x.fillStyle='#1d6b43';x.fillRect(90,200,450,14);
+  x.fillStyle='#111';x.textAlign='center';x.textBaseline='alphabetic';x.font=`700 76px ${JP}`;x.fillText('駅前通り',315,165);
+  x.font=`500 26px ${JP}`;x.fillText('Ekimae-dōri',315,244);
+  // 時刻表
+  x.fillStyle='#2f3337';x.fillRect(812,300,8,gy-300);
+  x.fillStyle='#fbfbf8';x.fillRect(700,120,240,190);x.strokeStyle='#333';x.lineWidth=2;x.strokeRect(700,120,240,190);
+  x.fillStyle='#111';x.font=`700 22px ${JP}`;x.fillText('時刻表',820,150);x.font=`500 17px ${JP}`;x.textAlign='left';
+  [['7','05 18 32 47 59'],['8','10 22 35 48'],['9','03 21 40 58'],['10','15 35 55'],['11','15 35 55']].forEach((row,i)=>{x.fillText(row[0],714,182+i*26);x.fillText(row[1],752,182+i*26)});
+  // 止まれ
+  x.fillStyle='#4a4f54';x.fillRect(1046,330,8,gy-330+20);
+  x.fillStyle='#d81f26';x.beginPath();x.moveTo(980,250);x.lineTo(1120,250);x.lineTo(1050,370);x.closePath();x.fill();
+  x.fillStyle='#fff';x.textAlign='center';x.font=`700 32px ${JP}`;x.fillText('止まれ',1050,295);
+}
+
+function drawNight(t=0){
+  const W=1200,H=800;sizeSrc(W,H);const x=src.getContext('2d');const r=rng(11);const gy=H*0.64;x.textAlign='left';
+  let g=x.createLinearGradient(0,0,0,gy);g.addColorStop(0,'#03050b');g.addColorStop(1,'#172038');x.fillStyle=g;x.fillRect(0,0,W,H);
+  x.fillStyle='#fff3d6';x.beginPath();x.arc(1010,90,26,0,7);x.fill();
+  let bx=0;while(bx<W){const w=110+r()*160,h=180+r()*300,top=gy-h;x.fillStyle=r()<.5?'#0a0e17':'#101624';x.fillRect(bx,top,w,h);
+    for(let yy=top+16;yy<gy-24;yy+=30)for(let xx=bx+12;xx<bx+w-20;xx+=24){const q=r();x.fillStyle=q<.28?'#ffd48a':q<.36?'#c4e6ff':'#171e2e';x.fillRect(xx,yy,13,17)}bx+=w+4}
+  x.fillStyle='#0f1116';x.fillRect(0,gy,W,H-gy);x.fillStyle='#2e3138';for(let lx=20;lx<W;lx+=150)x.fillRect(lx,gy+130,80,8);
+  // 街灯
+  [130,520,900].forEach(lx=>{x.fillStyle='#262a32';x.fillRect(lx,250,7,gy-250+40);x.fillRect(lx,250,46,6);x.fillStyle='#ffffff';x.beginPath();x.arc(lx+46,264,9,0,7);x.fill()});
+  // 信号（青4秒→黄1秒→赤3秒）
+  const ph=t%8,lit=ph<4?0:ph<5?1:2;
+  x.fillStyle='#242830';x.fillRect(698,330,6,gy-330+30);x.fillStyle='#14181e';x.fillRect(630,286,150,48);
+  [['#3dff9a','#123a24',655],['#ffd21a','#3a3312',705],['#ff2a1a','#3a1210',755]].forEach(([on,off,cx],i)=>{x.fillStyle=i===lit?on:off;x.beginPath();x.arc(cx,310,16,0,7);x.fill()});
+  // ネオン看板（ときどき瞬く）
+  const flick=(t%6)>5.2&&Math.sin(t*41)>0;
+  x.fillStyle='#160c10';x.fillRect(40,360,330,120);x.fillStyle=flick?'#1d4a4c':'#7ffcff';x.textAlign='center';x.font=`700 78px ${JP}`;x.fillText('居酒屋',205,450);
+  x.fillStyle=(t%1.6)<1.1?'#ff5ac8':'#3a1630';x.font=`700 34px ${JP}`;x.fillText('OPEN',470,420);
+  // 自販機
+  x.fillStyle='#eaf5ff';x.fillRect(1080,380,90,150);x.fillStyle='#8fb6d8';for(let i=0;i<4;i++)x.fillRect(1090+i*20,395,14,40);
+  // 車：奥の車線は右へ、手前の車線は左へ
+  [0,470,900].forEach(o=>{const cx=wrapX(o,140,t,W),cy=gy+34;carBody(x,cx,cy,140,56,'#1a1d24','#0d1016');
+    x.fillStyle='#ff2414';x.fillRect(cx-2,cy+28,12,10);x.fillStyle='#fffbe8';x.beginPath();x.arc(cx+138,cy+32,7,0,7);x.fill()});
+  [150,760].forEach(o=>{const w=200,cx=W-wrapX(o,220,t,W)-w,cy=gy+150;carBody(x,cx,cy,w,80,'#20232b','#0d1016');
+    x.fillStyle='#fffbe8';x.beginPath();x.arc(cx+4,cy+44,11,0,7);x.fill();x.fillStyle='#ff2414';x.fillRect(cx+w-12,cy+38,14,13)});
+}
+
+// ---- WebGL ----
+const gl=view.getContext('webgl',{premultipliedAlpha:false});
+if(!gl){document.querySelector('.frame').insertAdjacentHTML('beforeend','<p style="color:#fff;padding:16px;line-height:1.5">この端末のブラウザでは WebGL が使えないため表示できません。</p>');return}
+const vs=`attribute vec2 p;varying vec2 uv;void main(){uv=p*.5+.5;gl_Position=vec4(p,0.,1.);}`;
+const fs=`precision highp float;varying vec2 uv;uniform sampler2D img;uniform vec2 res;uniform vec2 rad;uniform float ang;uniform float boost;uniform float n;
+vec3 hdr(vec3 c){vec3 l=pow(c,vec3(2.2));float m=max(l.r,max(l.g,l.b));return l*(1.+smoothstep(.72,1.,m)*boost);}
+float hash(vec2 q){return fract(sin(dot(q,vec2(12.9898,78.233)))*43758.5453);}
+void main(){
+  if(max(rad.x,rad.y)<.35){gl_FragColor=texture2D(img,uv);return;}
+  float j=hash(gl_FragCoord.xy)*6.2831853;mat2 R=mat2(cos(ang),sin(ang),-sin(ang),cos(ang));
+  vec3 s=vec3(0.);
+  for(int i=0;i<144;i++){if(float(i)>=n)break;float t=(float(i)+.5)/n;float th=float(i)*2.3999632+j;vec2 q=sqrt(t)*vec2(cos(th),sin(th))*rad;q=R*q;s+=hdr(texture2D(img,uv+q/res).rgb);}
+  s/=n;gl_FragColor=vec4(pow(min(s,vec3(1.)),vec3(1./2.2)),1.);
+}`;
+function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(o);return o}
+const pr=gl.createProgram();gl.attachShader(pr,sh(gl.VERTEX_SHADER,vs));gl.attachShader(pr,sh(gl.FRAGMENT_SHADER,fs));gl.linkProgram(pr);gl.useProgram(pr);
+const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,3,-1,-1,3]),gl.STATIC_DRAW);
+const loc=gl.getAttribLocation(pr,'p');gl.enableVertexAttribArray(loc);gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);
+[gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T].forEach(k=>gl.texParameteri(gl.TEXTURE_2D,k,gl.CLAMP_TO_EDGE));
+gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+const U={res:gl.getUniformLocation(pr,'res'),rad:gl.getUniformLocation(pr,'rad'),ang:gl.getUniformLocation(pr,'ang'),boost:gl.getUniformLocation(pr,'boost'),n:gl.getUniformLocation(pr,'n')};
+gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
+let W=1200,H=800,vid=null,vidUrl=null,anim=null,animT=0,animPaused=false,ticking=false;
+function setSize(w,h){W=w;H=h;view.width=w;view.height=h;gl.viewport(0,0,w,h)}
+function stopMedia(){anim=null;if(vid){vid.pause();vid.removeAttribute('src');vid.load();vid=null}if(vidUrl){URL.revokeObjectURL(vidUrl);vidUrl=null}$('vctl').hidden=true;$('fps').hidden=true}
+function upload(){stopMedia();setSize(src.width,src.height);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,src);schedule()}
+let fc=0,ft=0;
+let lastDraw=0;const FRAME=1000/24;
+function ensureTick(){if(!ticking){ticking=true;requestAnimationFrame(tick)}}
+function mediaUi(){$('vctl').hidden=false;$('fps').hidden=false;$('fps').textContent='— fps';$('vctl').textContent='一時停止';fc=0;ft=performance.now()}
+function tick(){if(!vid&&!anim){ticking=false;return}const t=performance.now();if(t-lastDraw<FRAME-2){requestAnimationFrame(tick);return}
+  if(anim&&!animPaused){animT+=Math.min(.1,(t-lastDraw)/1000);(anim==='day'?drawDay:drawNight)(animT);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,src)}
+  lastDraw=t;render();fc++;if(t-ft>=1000){$('fps').textContent=Math.round(fc*1000/(t-ft))+' fps';fc=0;ft=t}requestAnimationFrame(tick)}
+function startAnim(n){stopMedia();anim=n;animT=0;animPaused=false;(n==='day'?drawDay:drawNight)(0);setSize(src.width,src.height);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,src);lastDraw=performance.now();mediaUi();ensureTick()}
+function playVideo(url,scene,onFail){const v=document.createElement('video');v.muted=true;v.loop=true;v.playsInline=true;v.setAttribute('playsinline','');
+  v.addEventListener('loadedmetadata',()=>{const m=960,s=Math.min(1,m/Math.max(v.videoWidth,v.videoHeight));setSize(Math.round(v.videoWidth*s),Math.round(v.videoHeight*s));
+    vid=v;setScene(scene);mediaUi();
+    v.play().catch(()=>{$('vctl').textContent='再生'});ensureTick()},{once:true});
+  v.addEventListener('error',()=>{if(onFail){onFail();return}$('fps').hidden=false;$('fps').textContent='この動画は読み込めませんでした'},{once:true});
+  v.src=url}
+function loadVideo(f){stopMedia();vidUrl=URL.createObjectURL(f);playVideo(vidUrl,'file')}
+const CLIPS={day:'assets/day.mp4',twilight:'assets/twilight.mp4',night:'assets/night.mp4'};
+function startClip(n){stopMedia();playVideo(CLIPS[n],n,()=>startAnim(n==='day'?'day':'night'))}
+$('vctl').addEventListener('click',()=>{if(anim){animPaused=!animPaused;$('vctl').textContent=animPaused?'再生':'一時停止';return}if(!vid)return;if(vid.paused){vid.play();$('vctl').textContent='一時停止'}else{vid.pause();$('vctl').textContent='再生'}});
+
+// 光学：ぼけ角(rad) ≈ 瞳孔径(m) × 度数(D)。軸方向の経線は S、直交する経線は S+C
+function blur(){const k=st.P*1e-3*180/Math.PI;return{a:k*Math.abs(st.S),b:k*Math.abs(st.S+st.C)}}// 直径（度）
+function render(){
+  if(vid&&vid.readyState>=2)gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,vid);
+  const {a,b}=blur();const pxPerDeg=W/FOV;
+  gl.uniform2f(U.res,W,H);gl.uniform1f(U.n,(vid||anim)?56:144);
+  if(st.hold){gl.uniform2f(U.rad,0,0)}else gl.uniform2f(U.rad,a/2*pxPerDeg,b/2*pxPerDeg);
+  gl.uniform1f(U.ang,st.AX*Math.PI/180);
+  gl.uniform1f(U.boost,Math.max(0,st.P-3)*2.6);
+  gl.drawArrays(gl.TRIANGLES,0,3);
+  drawPsf(a,b);drawStars(a,b);
+}
+const starImg=new Image(),starCv=$('stars'),starX=starCv.getContext('2d');let starKey='';
+starImg.onload=()=>{starKey='';schedule()};starImg.src='assets/stars.png';
+function drawStars(a,b){if(!starImg.complete||!starImg.naturalWidth)return;
+  const key=st.hold?'h':a.toFixed(3)+','+b.toFixed(3)+','+st.AX;if(key===starKey)return;starKey=key;
+  const P=30,Wc=starCv.width,Hc=starCv.height,pxDeg=900/FOV;
+  const ra=Math.min(P,a/2*pxDeg),rb=Math.min(P,b/2*pxDeg);
+  starX.clearRect(0,0,Wc,Hc);
+  if(st.hold||Math.max(ra,rb)<.4){starX.globalAlpha=1;starX.globalCompositeOperation='source-over';starX.drawImage(starImg,P,P);return}
+  const N=64,ang=st.AX*Math.PI/180,c=Math.cos(ang),s=Math.sin(ang);
+  starX.globalCompositeOperation='lighter';starX.globalAlpha=1/N;
+  for(let i=0;i<N;i++){const t=(i+.5)/N,th=i*2.3999632,r=Math.sqrt(t),x=r*Math.cos(th)*ra,y=r*Math.sin(th)*rb;
+    starX.drawImage(starImg,P+(x*c-y*s),P-(x*s+y*c))}
+  starX.globalAlpha=1;starX.globalCompositeOperation='source-over'}
+let raf=0;function schedule(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render()})}
+
+function drawPsf(a,b){
+  const x=psf.getContext('2d'),S=psf.width,c=S/2,cs=getComputedStyle(document.documentElement);
+  x.clearRect(0,0,S,S);x.strokeStyle='rgba(255,255,255,.14)';x.lineWidth=2;
+  for(let i=1;i<4;i++){x.beginPath();x.arc(c,c,i*S/8,0,7);x.stroke()}
+  x.beginPath();x.moveTo(0,c);x.lineTo(S,c);x.moveTo(c,0);x.lineTo(c,S);x.stroke();
+  const sc=S*0.42/1.2;// 1.2° を半径いっぱいに
+  const ra=Math.max(4,Math.min(a/2*sc,S*.48)),rb=Math.max(4,Math.min(b/2*sc,S*.48));
+  x.save();x.translate(c,c);x.rotate(-st.AX*Math.PI/180);x.scale(ra,rb);
+  const g=x.createRadialGradient(0,0,0,0,0,1);g.addColorStop(0,'rgba(255,248,225,1)');g.addColorStop(.85,'rgba(255,236,190,.75)');g.addColorStop(1,'rgba(255,236,190,0)');
+  x.fillStyle=g;x.beginPath();x.arc(0,0,1,0,7);x.fill();x.restore();
+}
+
+const fmt=v=>(v<0?'−':v>0?'+':'')+Math.abs(v).toFixed(2);
+function sync(){
+  $('oP').textContent=st.P.toFixed(1)+' mm';
+  $('rxS').textContent=fmt(st.S);$('rxC').textContent=fmt(st.C);$('rxA').textContent=String(st.AX).padStart(3,'0');
+  document.querySelectorAll('.dial').forEach(d=>{const k=d.dataset.k;d.setAttribute('aria-valuenow',st[k]);d.setAttribute('aria-valuetext',dialText(k))});
+  $('p').setAttribute('aria-valuetext',st.P.toFixed(1)+' mm、'+lightScene(st.P));
+  schedule();
+}
+const DIALS={
+  S:{min:-10,max:0,step:.25,name:'近視の強さ',text:'処方箋の S の値。マイナスが大きいほど遠くがぼやけます。',dir:'上へ：弱く　下へ：強く'},
+  C:{min:-6,max:0,step:.25,name:'乱視の強さ',text:'処方箋の C の値。ぼけが一方向に伸びます。',dir:'上へ：弱く　下へ：強く'},
+  AX:{step:5,wrap:true,name:'乱視の軸',text:'処方箋の AX の値。ぼけの伸びる向きが回ります。',dir:'上下に動かすと向きが回ります'}};
+function dialText(k){return k==='AX'?st.AX+'°':fmt(st[k])+' D'}
+function stepVal(k,n){const d=DIALS[k];let v=st[k]+n*d.step;
+  if(d.wrap){v=((v%180)+180)%180;if(v===0)v=180}else v=Math.min(d.max,Math.max(d.min,v));
+  v=Math.round(v*100)/100;if(v!==st[k]){st[k]=v;sync();try{navigator.vibrate&&navigator.vibrate(4)}catch(e){}}}
+const tip=$('tip'),rxBox=document.querySelector('.rx');
+function showTip(k,el){const d=DIALS[k];$('tipName').textContent=d.name;$('tipVal').textContent=dialText(k);$('tipText').textContent=d.text;$('tipDir').textContent=d.dir;
+  tip.hidden=false;const rb=rxBox.getBoundingClientRect(),eb=el.getBoundingClientRect();
+  tip.style.bottom=(rb.bottom-eb.top+8)+'px';tip.style.setProperty('--x',Math.min(eb.left+eb.width/2-rb.left,tip.offsetWidth-20)+'px')}
+function hideTip(){tip.hidden=true}
+const PX=14;
+document.querySelectorAll('.dial').forEach(el=>{const k=el.dataset.k;let y0=0,pid=null;
+  el.addEventListener('pointerdown',e=>{e.preventDefault();pid=e.pointerId;try{el.setPointerCapture(pid)}catch(_){}y0=e.clientY;el.classList.add('active');showTip(k,el)});
+  el.addEventListener('pointermove',e=>{if(e.pointerId!==pid)return;const n=Math.trunc((y0-e.clientY)/PX);if(n!==0){stepVal(k,n);y0-=n*PX;showTip(k,el)}});
+  const end=e=>{if(e.pointerId!==pid)return;pid=null;el.classList.remove('active');hideTip()};
+  el.addEventListener('pointerup',end);el.addEventListener('pointercancel',end);
+  el.addEventListener('keydown',e=>{if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();stepVal(k,e.key==='ArrowUp'?1:-1);showTip(k,el)}});
+  el.addEventListener('blur',hideTip);
+  el.addEventListener('wheel',e=>{e.preventDefault();stepVal(k,e.deltaY<0?1:-1)},{passive:false});
+});
+[['p','P']].forEach(([id,k])=>$(id).addEventListener('input',e=>{st[k]=+e.target.value;sync()}));
+function lightScene(p){return p<=2.5?'晴れた屋外':p<=3.5?'曇りの屋外':p<=4.5?'明るい室内':p<=5.5?'暗い室内':p<=7?'夜道':'ほぼ真っ暗'}
+const pIn=$('p'),tipP=$('tipP'),ctlP=$('ctlP');let pShow=false;
+function showTipP(){$('tipPScene').textContent=lightScene(st.P);$('tipPVal').textContent=st.P.toFixed(1)+' mm';tipP.hidden=false;
+  const cb=ctlP.getBoundingClientRect(),ib=pIn.getBoundingClientRect(),th=22,f=(st.P-2)/6;
+  tipP.style.bottom=(cb.bottom-ib.top+2)+'px';tipP.style.setProperty('--x',(ib.left+th/2+f*(ib.width-th)-cb.left)+'px')}
+function hideTipP(){pShow=false;tipP.hidden=true}
+pIn.addEventListener('pointerdown',()=>{pShow=true;showTipP()});
+pIn.addEventListener('input',()=>{if(pShow||document.activeElement===pIn){pShow=true;showTipP()}});
+['pointerup','pointercancel','change','blur'].forEach(t=>pIn.addEventListener(t,hideTipP));
+
+function setScene(name){document.querySelectorAll('[data-scene]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.scene===name)));$('fileLabel').setAttribute('aria-pressed',String(name==='file'))}
+document.querySelectorAll('[data-scene]').forEach(b=>b.addEventListener('click',()=>{
+  const n=b.dataset.scene;st.P=n==='day'?2.5:n==='twilight'?5:6.5;$('p').value=st.P;setScene(n);startClip(n);sync()}));
+$('file').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;e.target.value='';if(f.type.startsWith('video/')){loadVideo(f);return}const fr=new FileReader();
+  fr.onload=()=>{const im=new Image();im.onload=()=>{const m=1400,s=Math.min(1,m/Math.max(im.width,im.height));
+    src.width=Math.round(im.width*s);src.height=Math.round(im.height*s);src.getContext('2d').drawImage(im,0,0,src.width,src.height);setScene('file');upload()};im.src=fr.result};
+  fr.readAsDataURL(f)});
+
+const hold=$('hold');
+const on=e=>{e.preventDefault();st.hold=true;hold.classList.add('on');schedule()},off=()=>{st.hold=false;hold.classList.remove('on');schedule()};
+hold.addEventListener('pointerdown',on);['pointerup','pointerleave','pointercancel'].forEach(t=>hold.addEventListener(t,off));
+hold.addEventListener('keydown',e=>{if(e.key===' '||e.key==='Enter')on(e)});hold.addEventListener('keyup',off);
+
+st.P=5;$('p').value=5;startClip('twilight');sync();
+
+const themeBtn=$('theme'),root=document.documentElement,mq=matchMedia('(prefers-color-scheme: dark)');
+const isDark=()=>root.dataset.theme?root.dataset.theme==='dark':mq.matches;
+function paintTheme(){const d=isDark();themeBtn.classList.toggle('is-dark',d);themeBtn.setAttribute('aria-label',d?'ライトモードに切り替える':'ダークモードに切り替える')}
+try{const saved=localStorage.getItem('mdm-theme');if(saved==='dark'||saved==='light')root.dataset.theme=saved}catch(e){}
+themeBtn.addEventListener('click',()=>{const next=isDark()?'light':'dark';root.dataset.theme=next;try{localStorage.setItem('mdm-theme',next)}catch(e){}paintTheme()});
+mq.addEventListener('change',paintTheme);paintTheme();
+})();
+</script>
+</body>
+</html>
