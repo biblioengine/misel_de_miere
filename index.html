@@ -305,7 +305,10 @@ let fx=.5,fy=.5,fon=0,fT=0,fAnim=0,fPid=null;
 gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
 let W=1200,H=800,vid=null,vidUrl=null,anim=null,animT=0,animPaused=false,ticking=false;
 function setSize(w,h){W=w;H=h;view.width=w;view.height=h;gl.viewport(0,0,w,h)}
-function stopMedia(){anim=null;if(vid){vid.pause();vid.removeAttribute('src');vid.load();vid=null}if(vidUrl){URL.revokeObjectURL(vidUrl);vidUrl=null}$('vctl').hidden=true;$('fps').hidden=true}
+let pend=null,mediaTok=0;
+const vbox=document.createElement('div');vbox.style.cssText='position:fixed;left:-10px;top:-10px;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none';document.body.appendChild(vbox);
+function killVideo(v){try{v.pause();v.removeAttribute('src');v.load()}catch(_){}v.remove()}
+function stopMedia(){mediaTok++;anim=null;if(pend){killVideo(pend);pend=null}if(vid){killVideo(vid);vid=null}if(vidUrl){URL.revokeObjectURL(vidUrl);vidUrl=null}$('vctl').hidden=true;$('fps').hidden=true}
 function upload(){stopMedia();setSize(src.width,src.height);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,src);schedule()}
 let fc=0,ft=0;
 let lastDraw=0;const FRAME=1000/24;
@@ -317,12 +320,14 @@ function tick(){if(!vid&&!anim){ticking=false;return}const t=performance.now();i
   lastDraw=t;render();requestAnimationFrame(tick)}
 function startAnim(n){stopMedia();anim=n;animT=0;animPaused=false;(n==='day'?drawDay:drawNight)(0);setSize(src.width,src.height);
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,gl.RGB,gl.UNSIGNED_BYTE,src);lastDraw=performance.now();mediaUi();ensureTick()}
-function playVideo(url,scene,onFail){const v=document.createElement('video');v.muted=true;v.loop=true;v.playsInline=true;v.setAttribute('playsinline','');
-  v.addEventListener('loadedmetadata',()=>{const m=960,s=Math.min(1,m/Math.max(v.videoWidth,v.videoHeight));setSize(Math.round(v.videoWidth*s),Math.round(v.videoHeight*s));
-    vid=v;setScene(scene);mediaUi();
-    v.play().catch(()=>{setPlay(true)});ensureTick()},{once:true});
-  v.addEventListener('error',()=>{if(onFail){onFail();return}$('fps').hidden=false;$('fps').textContent='この動画は読み込めませんでした'},{once:true});
-  v.src=url}
+function playVideo(url,scene,onFail){const tok=mediaTok,v=document.createElement('video');
+  v.muted=true;v.defaultMuted=true;v.loop=true;v.playsInline=true;v.preload='auto';v.setAttribute('playsinline','');v.setAttribute('muted','');
+  vbox.appendChild(v);pend=v;
+  v.addEventListener('loadedmetadata',()=>{if(tok!==mediaTok)return;pend=null;
+    const m=960,s=Math.min(1,m/Math.max(v.videoWidth,v.videoHeight));setSize(Math.round(v.videoWidth*s),Math.round(v.videoHeight*s));
+    vid=v;setScene(scene);mediaUi();if(v.paused)v.play().catch(()=>{setPlay(true)});ensureTick()},{once:true});
+  v.addEventListener('error',()=>{if(tok!==mediaTok)return;pend=null;killVideo(v);if(onFail){onFail();return}$('fps').hidden=false;$('fps').textContent='この動画は読み込めませんでした'},{once:true});
+  v.src=url;v.load();v.play().catch(()=>{})}
 function loadVideo(f){stopMedia();vidUrl=URL.createObjectURL(f);playVideo(vidUrl,'file')}
 const CLIPS={day:'assets/day.mp4',twilight:'assets/twilight.mp4',night:'assets/night.mp4'};
 function startClip(n){stopMedia();playVideo(CLIPS[n],n,()=>startAnim(n==='day'?'day':'night'))}
