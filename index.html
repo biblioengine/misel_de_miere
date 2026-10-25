@@ -49,7 +49,19 @@ header{--lw:clamp(190px,52vw,380px);display:flex;align-items:flex-start;gap:12px
 .kana-row{position:relative;display:inline-block;line-height:0}
 .kana-row .kana{display:inline-block}
 .glasses{position:absolute;left:100%;top:50%;transform:translateY(-50%);width:26px;height:auto;display:block;margin-left:1px}
-#theme{margin-left:auto}
+#help{margin-left:auto}
+header{position:relative}
+#help{flex:none;width:40px;height:40px;display:grid;place-items:center;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;margin-top:4px}
+#help[aria-expanded="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+#help:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.help-pop{position:absolute;right:0;top:52px;z-index:40;width:min(300px,calc(100vw - 32px));box-sizing:border-box;background:var(--ink);color:var(--bg);border-radius:10px;padding:12px 14px;box-shadow:0 10px 28px rgba(0,0,0,.3)}
+.help-pop::before{content:"";position:absolute;top:-6px;right:66px;width:12px;height:12px;background:var(--ink);transform:rotate(45deg)}
+.help-pop dl{margin:0;display:flex;flex-direction:column;gap:8px}
+.help-pop dt{font-weight:700;font-size:.82rem}
+.help-pop dd{margin:0;font-size:.78rem;opacity:.8}
+.hint{position:absolute;left:50%;top:12px;transform:translateX(-50%);line-height:1.3;font-size:.8rem;padding:7px 14px;border-radius:999px;background:rgba(10,14,16,.68);color:#f2f6f8;border:1px solid rgba(255,255,255,.3);white-space:nowrap;pointer-events:none;transition:opacity .6s}
+.hint.out{opacity:0}
+@media (prefers-reduced-motion:reduce){.hint{transition:none}}
 #theme{flex:none;width:40px;height:40px;display:grid;place-items:center;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);cursor:pointer;margin-top:4px}
 #theme:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #theme .i-sun{display:none}
@@ -64,7 +76,7 @@ header p{margin:4px 0 0;color:var(--muted);font-size:.95rem}
 .grid{display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
 @media (min-width:880px){.grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(300px,1fr);align-items:stretch;gap:18px}}
 .stage{display:flex;flex-direction:column;gap:6px;min-width:0;flex:1;min-height:0}
-.frame{position:relative;background:var(--stage);border-radius:6px;overflow:hidden;line-height:0;flex:1;min-height:140px}
+.frame{position:relative;background:var(--stage);border-radius:6px;overflow:hidden;line-height:0;flex:1;min-height:140px;touch-action:none;cursor:crosshair}
 #view{width:100%;height:100%;object-fit:contain;display:block}
 #hold{position:absolute;right:10px;bottom:10px;line-height:1.3;font:inherit;font-size:.85rem;padding:9px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.35);background:rgba(10,14,16,.62);color:#f2f6f8;backdrop-filter:blur(4px);touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer}
 #hold.on{background:#f2f6f8;color:#0b1013}
@@ -133,6 +145,16 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0;padding-block:1
     <section class="stage">
       <header>
         <h1><span class="logo-wrap"><img class="logo" src="assets/logo.png" alt="Misel de Mière" width="900" height="207"><canvas id="stars" width="190" height="96" aria-hidden="true"></canvas></span><span class="kana-row"><span class="kana">ミセル・ド・ミエール</span><img class="glasses" src="assets/glasses.png" alt="" width="600" height="230" aria-hidden="true"></span></h1>
+        <button id="help" type="button" aria-label="操作の説明" aria-expanded="false" aria-controls="helpPop"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9.2 9.1a2.9 2.9 0 1 1 4.2 2.6c-.9.5-1.4 1.1-1.4 2v.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1.25" fill="currentColor"/></svg></button>
+        <div class="help-pop" id="helpPop" hidden>
+          <dl>
+            <div><dt>映像をダブルタップ</dt><dd>その場所を注視。もう一度で解除</dd></div>
+            <div><dt>↕ を押さえて上下</dt><dd>度数を合わせる</dd></div>
+            <div><dt>露出</dt><dd>周りの明るさを変える</dd></div>
+            <div><dt>original</dt><dd>押している間、元の映像</dd></div>
+            <div><dt>Load file</dt><dd>自分の写真や動画で試す</dd></div>
+          </dl>
+        </div>
         <button id="theme" type="button" aria-label="ダークモードに切り替える">
           <svg class="i-moon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z" fill="currentColor"/></svg>
           <svg class="i-sun" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="currentColor"/><g stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></g></svg>
@@ -141,6 +163,7 @@ input[type=range]{width:100%;accent-color:var(--accent);margin:0;padding-block:1
       <div class="frame">
         <canvas id="view" width="1200" height="800" aria-label="見え方のシミュレーション結果"></canvas>
         <button id="hold" type="button" aria-label="押している間は元の映像を表示">original</button>
+        <div class="hint" id="hint" hidden>映像をダブルタップで注視</div>
         <button id="vctl" type="button" hidden aria-label="一時停止"></button>
         <span id="fps" hidden></span>
       </div>
@@ -254,14 +277,20 @@ function drawNight(t=0){
 const gl=view.getContext('webgl',{premultipliedAlpha:false});
 if(!gl){document.querySelector('.frame').insertAdjacentHTML('beforeend','<p style="color:#fff;padding:16px;line-height:1.5">この端末のブラウザでは WebGL が使えないため表示できません。</p>');return}
 const vs=`attribute vec2 p;varying vec2 uv;void main(){uv=p*.5+.5;gl_Position=vec4(p,0.,1.);}`;
-const fs=`precision highp float;varying vec2 uv;uniform sampler2D img;uniform vec2 res;uniform vec2 rad;uniform float ang;uniform float boost;uniform float n;
+const fs=`precision highp float;varying vec2 uv;uniform sampler2D img;uniform vec2 res;uniform vec2 rad;uniform float ang;uniform float boost;uniform float n;uniform vec2 foc;uniform float fon;uniform float frad;uniform vec2 cen;uniform float zm;
 vec3 hdr(vec3 c){vec3 l=pow(c,vec3(2.2));float m=max(l.r,max(l.g,l.b));return l*(1.+smoothstep(.72,1.,m)*boost);}
 float hash(vec2 q){return fract(sin(dot(q,vec2(12.9898,78.233)))*43758.5453);}
 void main(){
-  if(max(rad.x,rad.y)<.35){gl_FragColor=texture2D(img,uv);return;}
+  vec2 fsc=(foc-cen)*zm+.5;
+  float d=length((uv-fsc)*res)/frad;
+  float k=fon*(1.-smoothstep(0.,1.35,d));
+  vec2 su=fsc+(uv-fsc)*(1.-.27*k);
+  vec2 suv=cen+(su-.5)/zm;
+  vec2 rr=rad+vec2(fon*smoothstep(.8,1.6,d)*.011*res.x);
+  if(max(rr.x,rr.y)<.35){gl_FragColor=texture2D(img,suv);return;}
   float j=hash(gl_FragCoord.xy)*6.2831853;mat2 R=mat2(cos(ang),sin(ang),-sin(ang),cos(ang));
   vec3 s=vec3(0.);
-  for(int i=0;i<144;i++){if(float(i)>=n)break;float t=(float(i)+.5)/n;float th=float(i)*2.3999632+j;vec2 q=sqrt(t)*vec2(cos(th),sin(th))*rad;q=R*q;s+=hdr(texture2D(img,uv+q/res).rgb);}
+  for(int i=0;i<144;i++){if(float(i)>=n)break;float t=(float(i)+.5)/n;float th=float(i)*2.3999632+j;vec2 q=sqrt(t)*vec2(cos(th),sin(th))*rr;q=R*q;s+=hdr(texture2D(img,suv+q/res).rgb);}
   s/=n;gl_FragColor=vec4(pow(min(s,vec3(1.)),vec3(1./2.2)),1.);
 }`;
 function sh(t,s){const o=gl.createShader(t);gl.shaderSource(o,s);gl.compileShader(o);if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw gl.getShaderInfoLog(o);return o}
@@ -271,7 +300,8 @@ const loc=gl.getAttribLocation(pr,'p');gl.enableVertexAttribArray(loc);gl.vertex
 const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);
 [gl.TEXTURE_WRAP_S,gl.TEXTURE_WRAP_T].forEach(k=>gl.texParameteri(gl.TEXTURE_2D,k,gl.CLAMP_TO_EDGE));
 gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
-const U={res:gl.getUniformLocation(pr,'res'),rad:gl.getUniformLocation(pr,'rad'),ang:gl.getUniformLocation(pr,'ang'),boost:gl.getUniformLocation(pr,'boost'),n:gl.getUniformLocation(pr,'n')};
+const U={res:gl.getUniformLocation(pr,'res'),rad:gl.getUniformLocation(pr,'rad'),ang:gl.getUniformLocation(pr,'ang'),boost:gl.getUniformLocation(pr,'boost'),n:gl.getUniformLocation(pr,'n'),foc:gl.getUniformLocation(pr,'foc'),fon:gl.getUniformLocation(pr,'fon'),frad:gl.getUniformLocation(pr,'frad'),cen:gl.getUniformLocation(pr,'cen'),zm:gl.getUniformLocation(pr,'zm')};
+let fx=.5,fy=.5,fon=0,fT=0,fAnim=0,fPid=null;
 gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL,true);
 let W=1200,H=800,vid=null,vidUrl=null,anim=null,animT=0,animPaused=false,ticking=false;
 function setSize(w,h){W=w;H=h;view.width=w;view.height=h;gl.viewport(0,0,w,h)}
@@ -307,6 +337,9 @@ function render(){
   if(st.hold){gl.uniform2f(U.rad,0,0)}else gl.uniform2f(U.rad,a/2*pxPerDeg,b/2*pxPerDeg);
   gl.uniform1f(U.ang,st.AX*Math.PI/180);
   gl.uniform1f(U.boost,Math.max(0,st.P-3)*2.6);
+  const fo=st.hold?0:fon,Z=1+.35*fo,cl=(v)=>Math.min(1-.5/Z,Math.max(.5/Z,v));
+  gl.uniform2f(U.foc,fx,fy);gl.uniform1f(U.fon,fo);gl.uniform1f(U.frad,Math.min(W,H)*.34);
+  gl.uniform1f(U.zm,Z);gl.uniform2f(U.cen,cl(fx),cl(fy));
   gl.drawArrays(gl.TRIANGLES,0,3);
   drawPsf(a,b);drawStars(a,b);
 }
@@ -386,6 +419,43 @@ $('file').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;e
   fr.onload=()=>{const im=new Image();im.onload=()=>{const m=1400,s=Math.min(1,m/Math.max(im.width,im.height));
     src.width=Math.round(im.width*s);src.height=Math.round(im.height*s);src.getContext('2d').drawImage(im,0,0,src.width,src.height);setScene('file');upload()};im.src=fr.result};
   fr.readAsDataURL(f)});
+
+// 注視：ダブルタップした場所にピントと視野が集まる
+const frame=document.querySelector('.frame');
+let ftx=.5,fty=.5;
+function fStep(){fAnim=0;fon+=(fT-fon)*.3;if(Math.abs(fT-fon)<.02)fon=fT;
+  fx+=(ftx-fx)*.3;fy+=(fty-fy)*.3;const moving=Math.abs(ftx-fx)+Math.abs(fty-fy)>.002;if(!moving){fx=ftx;fy=fty}
+  if(!vid&&!anim)render();if(fon!==fT||moving)fAnim=requestAnimationFrame(fStep)}
+function fKick(){if(!fAnim)fAnim=requestAnimationFrame(fStep)}
+function toUv(e){const r=view.getBoundingClientRect(),ar=W/H;let cw=r.width,ch=cw/ar;if(ch>r.height){ch=r.height;cw=ch*ar}
+  const ox=r.left+(r.width-cw)/2,oy=r.top+(r.height-ch)/2,cl=v=>Math.min(1,Math.max(0,v));
+  return{x:cl((e.clientX-ox)/cw),y:1-cl((e.clientY-oy)/ch),cw}}
+let tDown=null,lastTap=null;
+frame.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;e.preventDefault();tDown={x:e.clientX,y:e.clientY,t:performance.now(),id:e.pointerId}});
+frame.addEventListener('pointerup',e=>{if(!tDown||e.pointerId!==tDown.id)return;const d=tDown;tDown=null;
+  const now=performance.now();if(now-d.t>350||Math.hypot(e.clientX-d.x,e.clientY-d.y)>12){lastTap=null;return}
+  if(lastTap&&now-lastTap.t<350&&Math.hypot(e.clientX-lastTap.x,e.clientY-lastTap.y)<40){
+    lastTap=null;const u=toUv(e);
+    const Z=1+.35*fon,cl=v=>Math.min(1-.5/Z,Math.max(.5/Z,v)),cx=cl(fx),cy=cl(fy);
+    const tx=Math.min(1,Math.max(0,cx+(u.x-.5)/Z)),ty=Math.min(1,Math.max(0,cy+(u.y-.5)/Z));
+    const sx=(ftx-cx)*Z+.5,sy=(fty-cy)*Z+.5;
+    if(fT===1&&Math.hypot((u.x-sx)*u.cw,(u.y-sy)*u.cw*H/W)<u.cw*.12){fT=0}
+    else{if(fT===0){fx=tx;fy=ty}ftx=tx;fty=ty;fT=1;doneHint()}
+    fKick()}
+  else lastTap={x:e.clientX,y:e.clientY,t:now}});
+frame.addEventListener('pointercancel',()=>{tDown=null});
+
+// 操作説明
+const helpBtn=$('help'),helpPop=$('helpPop');
+function setHelp(open){helpPop.hidden=!open;helpBtn.setAttribute('aria-expanded',String(open))}
+helpBtn.addEventListener('click',e=>{e.stopPropagation();setHelp(helpPop.hidden)});
+document.addEventListener('pointerdown',e=>{if(!helpPop.hidden&&!helpPop.contains(e.target)&&!helpBtn.contains(e.target))setHelp(false)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')setHelp(false)});
+// ダブルタップのヒント（一度使うまで、開くたびに数秒表示）
+const hint=$('hint');let hintT=0;
+function doneHint(){try{localStorage.setItem('mdm-hint-done','1')}catch(_){}hint.classList.add('out');setTimeout(()=>{hint.hidden=true},700)}
+(()=>{let done=false;try{done=localStorage.getItem('mdm-hint-done')==='1'}catch(_){}
+  if(done)return;hint.hidden=false;hintT=setTimeout(()=>{hint.classList.add('out');setTimeout(()=>{hint.hidden=true},700)},4500)})();
 
 const hold=$('hold');
 const on=e=>{e.preventDefault();st.hold=true;hold.classList.add('on');schedule()},off=()=>{st.hold=false;hold.classList.remove('on');schedule()};
