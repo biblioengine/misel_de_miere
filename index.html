@@ -17,7 +17,7 @@
 <meta name="apple-mobile-web-app-title" content="Misel de Mière">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Shippori+Mincho+B1:wght@700&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Shippori+Mincho:wght@500&family=Zen+Kaku+Gothic+New:wght@400;700&display=swap">
 <style>
 :root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);-webkit-text-size-adjust:100%}
 body{margin:0;font-size:14px}
@@ -28,17 +28,17 @@ img{max-width:100%}
 /* Layout: 写真ビューアが主役、右（スマホでは下）に眼鏡処方箋のような操作パネル */
 :root{
   --bg:#e9eef0; --panel:#ffffff; --ink:#1a2327; --muted:#5a6a72; --line:#cad4d8;
-  --accent:#2c6d8c; --accent-soft:#d9e9f1; --stage:#0f1417;
+  --accent:#2c6d8c; --accent-soft:#d9e9f1; --stage:#0f1417; --gold:#9c7430;
   --f-display:"Pinyon Script","Snell Roundhand","Apple Chancery",cursive;
   --f-body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#0f1416; --panel:#172024; --ink:#e2e9ec; --muted:#93a3ab; --line:#2a373d;
-  --accent:#6db2d3; --accent-soft:#1d3440; --stage:#06090b; color-scheme:dark}}
+  --accent:#6db2d3; --accent-soft:#1d3440; --stage:#06090b; --gold:#c9a35e; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#0f1416; --panel:#172024; --ink:#e2e9ec; --muted:#93a3ab; --line:#2a373d;
-  --accent:#6db2d3; --accent-soft:#1d3440; --stage:#06090b; color-scheme:dark}
+  --accent:#6db2d3; --accent-soft:#1d3440; --stage:#06090b; --gold:#c9a35e; color-scheme:dark}
 
 html{box-sizing:border-box}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
@@ -50,12 +50,12 @@ header{display:flex;justify-content:space-between;align-items:flex-start;gap:12p
 #theme:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 #theme .i-sun{display:none}
 #theme.is-dark .i-sun{display:block}#theme.is-dark .i-moon{display:none}
-header h1{margin:0;display:flex;flex-wrap:wrap;align-items:flex-end;gap:4px 14px;font-weight:400}
+header h1{margin:0;display:inline-flex;flex-direction:column;align-items:center;gap:2px;font-weight:400}
 .logo-wrap{position:relative;display:block;width:clamp(190px,52vw,380px);line-height:0}
 .logo{width:100%;height:auto;display:block}
 #stars{position:absolute;left:39.05%;top:67.42%;width:21.11%;height:46.38%;pointer-events:none}
 header .fr{font-family:var(--f-display);font-size:clamp(2.1rem,7vw,3.4rem);line-height:1.1;letter-spacing:.01em}
-header .kana{font-family:var(--f-body);font-size:.85rem;color:var(--muted);letter-spacing:.12em}
+header .kana{font-family:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho",serif;font-weight:500;font-size:.66rem;line-height:1.4;color:var(--gold);letter-spacing:.6em;padding-left:.6em}
 header p{margin:4px 0 0;color:var(--muted);font-size:.95rem}
 .grid{display:flex;flex-direction:column;gap:10px;flex:1;min-height:0}
 @media (min-width:880px){.grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(300px,1fr);align-items:stretch;gap:18px}}
